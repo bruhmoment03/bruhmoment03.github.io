@@ -66,7 +66,7 @@
             <div class="hero-glow hero-glow-2"></div>
             <div class="hero-grid"></div>
         </div>
-        <div class="hero-content anim-fade-up">
+        <div class="hero-content">
             <span class="hero-tag" data-i18n="home.hero.tag">Free & Open Source</span>
             <h1 class="hero-title">
                 <span data-i18n="home.hero.title1">Professional Tools</span><br>
@@ -80,7 +80,7 @@
                 <a href="#tools" class="btn-secondary hero-btn" data-i18n="home.hero.cta2">View Tools</a>
             </div>
         </div>
-        <div class="hero-mockup anim-fade-up anim-delay-1">
+        <div class="hero-mockup">
             <div class="mockup-window">
                 <div class="mockup-dots">
                     <span></span><span></span><span></span>
@@ -212,18 +212,37 @@
     <script src="i18n.js"></script>
     <script src="shared.js"></script>
     <script>
-    // --- Scroll Animations ---
+    // --- Scroll Animations (progressive enhancement) ---
     (function() {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('anim-visible');
-                    observer.unobserve(entry.target);
+        // Enable scroll animations - without this class, all content stays visible
+        document.documentElement.classList.add('anim-ready');
+
+        function revealVisible() {
+            var els = document.querySelectorAll('.anim-fade-up:not(.anim-visible)');
+            if (!els.length) {
+                window.removeEventListener('scroll', revealVisible);
+                return;
+            }
+            var vh = window.innerHeight;
+            els.forEach(function(el) {
+                if (el.getBoundingClientRect().top < vh - 30) {
+                    el.classList.add('anim-visible');
                 }
             });
-        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+        }
 
-        document.querySelectorAll('.anim-fade-up').forEach(el => observer.observe(el));
+        window.addEventListener('scroll', revealVisible, { passive: true });
+        // Run initial check after layout settles
+        revealVisible();
+        setTimeout(revealVisible, 100);
+
+        // Failsafe: reveal ALL remaining elements after 1.5s
+        // Ensures content is always visible even if scroll detection fails
+        setTimeout(function() {
+            document.querySelectorAll('.anim-fade-up:not(.anim-visible)').forEach(function(el) {
+                el.classList.add('anim-visible');
+            });
+        }, 1500);
 
         // --- Navbar scroll effect ---
         const navbar = document.getElementById('navbar');

@@ -743,23 +743,24 @@ a { text-decoration: none; color: inherit; }
 
 /* ============================================
    SCROLL ANIMATIONS
+   JS adds .anim-ready to <html> then hides .anim-fade-up.
+   Without JS, everything stays visible (progressive enhancement).
    ============================================ */
 
-.anim-fade-up {
+html.anim-ready .anim-fade-up {
     opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(20px);
 }
 
-.anim-fade-up.anim-visible {
+html.anim-ready .anim-fade-up.anim-visible {
     opacity: 1;
     transform: translateY(0);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.anim-delay-1 { transition-delay: 0.1s; }
-.anim-delay-2 { transition-delay: 0.2s; }
-.anim-delay-3 { transition-delay: 0.3s; }
+html.anim-ready .anim-delay-1.anim-visible { transition-delay: 0.1s; }
+html.anim-ready .anim-delay-2.anim-visible { transition-delay: 0.2s; }
 
 
 /* ============================================
