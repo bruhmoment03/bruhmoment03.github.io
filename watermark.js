@@ -1,15 +1,14 @@
 /* ============================================
-   ToolKit Pro - Watermark Tool
+   ToolKit Pro - Watermark Tool Logic
    ============================================ */
 
 (function() {
     'use strict';
 
-    // --- State ---
     let uploadedImage = null;
     let zoomLevel = 1;
+    let fontWeight = 'normal';
 
-    // --- DOM Elements ---
     const $ = (sel) => document.querySelector(sel);
     const canvas = $('#previewCanvas');
     const ctx = canvas.getContext('2d');
@@ -20,7 +19,6 @@
     const fileName = $('#fileName');
     const fileRemove = $('#fileRemove');
     const previewPlaceholder = $('#previewPlaceholder');
-    const previewWrapper = $('#previewWrapper');
     const downloadBtn = $('#downloadBtn');
 
     const wmText = $('#wmText');
@@ -35,44 +33,6 @@
     const wmOpacityValue = $('#wmOpacityValue');
     const wmRotationValue = $('#wmRotationValue');
     const wmColorHex = $('#wmColorHex');
-
-    const themeToggle = $('#themeToggle');
-    const sidebar = $('#sidebar');
-    const mobileMenu = $('#mobileMenu');
-    const sidebarOverlay = $('#sidebarOverlay');
-
-    let fontWeight = 'normal';
-
-    // --- Theme ---
-    function initTheme() {
-        const saved = localStorage.getItem('theme');
-        if (saved) {
-            document.documentElement.setAttribute('data-theme', saved);
-        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    }
-
-    function toggleTheme() {
-        const current = document.documentElement.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    }
-
-    initTheme();
-    themeToggle.addEventListener('click', toggleTheme);
-
-    // --- Mobile Sidebar ---
-    mobileMenu.addEventListener('click', () => {
-        sidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
-    });
-
-    sidebarOverlay.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
-    });
 
     // --- File Upload ---
     uploadZone.addEventListener('click', () => fileInput.click());
@@ -89,15 +49,11 @@
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadZone.classList.remove('drag-over');
-        if (e.dataTransfer.files.length) {
-            handleFile(e.dataTransfer.files[0]);
-        }
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
     });
 
     fileInput.addEventListener('change', () => {
-        if (fileInput.files.length) {
-            handleFile(fileInput.files[0]);
-        }
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
     });
 
     fileRemove.addEventListener('click', () => {
@@ -111,9 +67,7 @@
     });
 
     function handleFile(file) {
-        if (!file.type.startsWith('image/')) {
-            return;
-        }
+        if (!file.type.startsWith('image/')) return;
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -142,10 +96,8 @@
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
 
-        // Draw image
         ctx.drawImage(img, 0, 0);
 
-        // Watermark settings
         const text = wmText.value || 'WATERMARK';
         const size = parseInt(wmSize.value);
         const padding = parseInt(wmPadding.value);
@@ -153,7 +105,6 @@
         const rotation = parseInt(wmRotation.value) * (Math.PI / 180);
         const color = wmColor.value;
 
-        // Parse color to RGB
         const r = parseInt(color.slice(1, 3), 16);
         const g = parseInt(color.slice(3, 5), 16);
         const b = parseInt(color.slice(5, 7), 16);
@@ -165,13 +116,11 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Calculate pattern dimensions
         const metrics = ctx.measureText(text);
         const textWidth = metrics.width;
         const stepX = textWidth + padding;
         const stepY = size + padding;
 
-        // Translate to center, rotate, then tile
         const diagonal = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
@@ -179,20 +128,13 @@
         ctx.translate(centerX, centerY);
         ctx.rotate(rotation);
 
-        const startX = -diagonal;
-        const startY = -diagonal;
-        const endX = diagonal;
-        const endY = diagonal;
-
-        for (let y = startY; y < endY; y += stepY) {
-            for (let x = startX; x < endX; x += stepX) {
+        for (let y = -diagonal; y < diagonal; y += stepY) {
+            for (let x = -diagonal; x < diagonal; x += stepX) {
                 ctx.fillText(text, x, y);
             }
         }
 
         ctx.restore();
-
-        // Apply zoom
         canvas.style.transform = `scale(${zoomLevel})`;
     }
 
@@ -203,17 +145,15 @@
         renderTimeout = setTimeout(renderWatermark, 30);
     }
 
-    // --- Control event listeners ---
+    // --- Controls ---
     wmText.addEventListener('input', debouncedRender);
 
-    const rangeControls = [
+    [
         { input: wmSize, display: wmSizeValue, suffix: 'px' },
         { input: wmPadding, display: wmPaddingValue, suffix: 'px' },
         { input: wmOpacity, display: wmOpacityValue, suffix: '%' },
         { input: wmRotation, display: wmRotationValue, suffix: '\u00B0' },
-    ];
-
-    rangeControls.forEach(({ input, display, suffix }) => {
+    ].forEach(({ input, display, suffix }) => {
         input.addEventListener('input', () => {
             display.textContent = input.value + suffix;
             debouncedRender();
@@ -225,7 +165,7 @@
         debouncedRender();
     });
 
-    // --- Font Weight Toggle ---
+    // --- Font Weight ---
     document.querySelectorAll('.toggle-btn[data-weight]').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.toggle-btn[data-weight]').forEach(b => b.classList.remove('active'));
@@ -263,13 +203,48 @@
         if (uploadedImage) canvas.style.transform = `scale(${zoomLevel})`;
     });
 
-    // --- Download ---
+    // --- Download (works on iOS/Safari too) ---
     downloadBtn.addEventListener('click', () => {
         if (!uploadedImage) return;
-        const link = document.createElement('a');
-        link.download = 'watermarked-image.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+
+        canvas.toBlob((blob) => {
+            if (!blob) return;
+
+            // iOS Safari: open image in new tab since download attr is not supported
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+            if (isIOS) {
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank');
+                if (!win) {
+                    // Fallback: show instructions
+                    const img = new Image();
+                    img.src = url;
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px;';
+                    const msg = document.createElement('p');
+                    msg.style.cssText = 'font-size:14px;color:var(--text-secondary);text-align:center;';
+                    msg.textContent = 'Long press the image below and tap "Save Image"';
+                    const closeBtn = document.createElement('button');
+                    closeBtn.textContent = 'Close';
+                    closeBtn.className = 'btn-secondary';
+                    closeBtn.onclick = () => { overlay.remove(); URL.revokeObjectURL(url); };
+                    img.style.cssText = 'max-width:90%;max-height:60vh;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);';
+                    overlay.append(msg, img, closeBtn);
+                    document.body.appendChild(overlay);
+                }
+            } else {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = 'watermarked-image.png';
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+        }, 'image/png');
     });
 
 })();
